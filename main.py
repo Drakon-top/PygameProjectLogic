@@ -63,7 +63,11 @@ class Tile(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(player_group)
-        self.image = player_image
+        self.frames = []
+        self.cut_sheet(player_image, 4, 4)
+        self.cur_frame = 0
+        self.number_frame = 0
+        self.image = self.frames[self.number_frame][self.cur_frame]
         self.rect = self.image.get_rect().move(
             x_start + tile_width * pos_x + (tile_width - self.image.get_rect().width) // 2,
             y_start + tile_height * pos_y + (tile_height - self.image.get_rect().height) // 2)
@@ -86,23 +90,54 @@ class Player(pygame.sprite.Sprite):
         self.get_keys()
         self.rect.x += self.dx
         self.rect.y += self.dy
+        true = True
         if pygame.sprite.spritecollideany(self, walls):
             self.rect.x -= self.dx
             self.rect.y -= self.dy
-        sprite = pygame.sprite.spritecollideany(self, student_group)
-        if sprite:
-            if not sprite.move(self.dx, self.dy):
-                self.rect.x -= self.dx
-                self.rect.y -= self.dy
+            true = False
+        else:
+            sprite = pygame.sprite.spritecollideany(self, student_group)
+            if sprite:
+                if not sprite.move(self.dx, self.dy):
+                    self.rect.x -= self.dx
+                    self.rect.y -= self.dy
+                    true = False
+        if true:
+            if self.dx > 0:
+                self.number_frame = 3
+            elif self.dx < 0:
+                self.number_frame = 2
+            elif self.dy < 0:
+                self.number_frame = 1
+            else:
+                self.number_frame = 0
         self.dx = 0
         self.dy = 0
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            f = []
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                f.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+            self.frames.append(f)
+
+    def anim(self):
+        self.cur_frame = (self.cur_frame + 0.1) % len(self.frames[self.number_frame])
+        self.image = self.frames[self.number_frame][int(self.cur_frame)]
 
 
 class Student(pygame.sprite.Sprite):
     def __init__(self, image_st, pos_x, pos_y, type):
         super().__init__(student_group)
+        self.frames = []
+        self.cut_sheet(tile_images[image_st], 4, 1)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
         self.type = type
-        self.image = tile_images[image_st]
         self.rect = self.image.get_rect().move(
             x_start + tile_width * pos_x + (tile_width - self.image.get_rect().width) // 2,
             y_start + tile_height * pos_y + (tile_height - self.image.get_rect().height) // 2)
@@ -122,6 +157,22 @@ class Student(pygame.sprite.Sprite):
                 self.rect.y -= dy
                 return False
         return True
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        self.anim()
+
+    def anim(self):
+        self.cur_frame = (self.cur_frame + 0.1) % len(self.frames)
+        self.image = self.frames[int(self.cur_frame)]
 
 
 class ClassExit(pygame.sprite.Sprite):
@@ -226,14 +277,25 @@ def load_level(filename):
 
 tile_images = {
     'wall': load_image('box.png'),
-    'empty': load_image('grass.png'),
-    'exit_1': load_image('Exit_ordinary_active.png'),
-    'pl_1': load_image('Ordinary.png'),
-    'exit_1_d': load_image('Exit_ordinary.png')
+    'empty': load_image('grass1.png'),
+    'exit_m': load_image('Exit_ordinary_active.png'),
+    'pl_m': load_image('Person3.png'),
+    'exit_m_d': load_image('Exit_ordinary.png')
 }
-player_image = load_image('Player.png')
+player_image = load_image('proger.png')
 
 
+'''
+. - пустая клетка
+@ - стена
+P - игрок
+M - выход для инженер 
+m - инженер
+F - выход для химика
+f - химик
+E - выход для экономиста
+e - экономист
+'''
 def generate_level(level):
     global x_start, y_start
     new_player, x, y = None, None, None
@@ -245,42 +307,22 @@ def generate_level(level):
             elif level[y][x] == '@':
                 #Tile('wall', x, y)
                 walls.add(Tile('wall', x, y))
-            elif level[y][x] == 'p':
+            elif level[y][x] == 'P':
                 Tile('empty', x, y)
                 new_player = Player(x, y)
             elif level[y][x] == 'M':
-                ClassExit('exit_1', 'exit_1_d', x, y, 0)
+                ClassExit('exit_m', 'exit_m_d', x, y, 0)
             elif level[y][x] == 'm':
                 Tile('empty', x, y)
-                Student('pl_1', x, y, 0)
+                Student('pl_m', x, y, 0)
             elif level[y][x] == 'F':
-                ClassExit('exit_1', 'exit_1_d', x, y, 0)
+                ClassExit('exit_f', 'exit_f_d', x, y, 0)
             elif level[y][x] == 'f':
                 Tile('empty', x, y)
                 Student('pl_1', x, y, 0)
-            elif level[y][x] == 'H':
-                ClassExit('exit_1', 'exit_1_d', x, y, 0)
-            elif level[y][x] == 'h':
-                Tile('empty', x, y)
-                Student('pl_1', x, y, 0)
-            elif level[y][x] == 'B':
-                ClassExit('exit_1', 'exit_1_d', x, y, 0)
-            elif level[y][x] == 'b':
-                Tile('empty', x, y)
-                Student('pl_1', x, y, 0)
-            elif level[y][x] == 'I':
-                ClassExit('exit_1', 'exit_1_d', x, y, 0)
-            elif level[y][x] == 'i':
-                Tile('empty', x, y)
-                Student('pl_1', x, y, 0)
-            elif level[y][x] == 'D':
-                ClassExit('exit_1', 'exit_1_d', x, y, 0)
-            elif level[y][x] == 'd':
-                Tile('empty', x, y)
-                Student('pl_1', x, y, 0)
-            elif level[y][x] == 'O':
-                ClassExit('exit_1', 'exit_1_d', x, y, 0)
-            elif level[y][x] == 'o':
+            elif level[y][x] == 'E':
+                ClassExit('exit_e', 'exit_e_d', x, y, 0)
+            elif level[y][x] == 'e':
                 Tile('empty', x, y)
                 Student('pl_1', x, y, 0)
     # вернем игрока, а также размер поля в клетках
@@ -319,6 +361,8 @@ def main(none=None):
         but_menu.draw(screen)
         student_group.draw(screen)
         player_group.draw(screen)
+        player.anim()
+        student_group.update()
         pygame.display.flip()  # смена кадра
         # изменение игрового мира
         all_sprites.update()
