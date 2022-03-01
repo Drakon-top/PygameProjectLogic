@@ -277,10 +277,16 @@ def load_level(filename):
 
 tile_images = {
     'wall': load_image('box.png'),
-    'empty': load_image('grass1.png'),
+    'empty': load_image('grass.png'),
     'exit_m': load_image('Exit_ordinary_active.png'),
+    'exit_e': load_image('Exit_ordinary_active.png'),
+    'exit_f': load_image('Exit_ordinary_active.png'),
     'pl_m': load_image('Person3.png'),
-    'exit_m_d': load_image('Exit_ordinary.png')
+    'exit_m_d': load_image('Exit_ordinary.png'),
+    'exit_e_d': load_image('Exit_ordinary.png'),
+    'exit_f_d': load_image('Exit_ordinary.png'),
+    "pl_f": load_image('Химик (2).png'),
+    "pl_e": load_image('Person4.png'),
 }
 player_image = load_image('proger.png')
 
@@ -319,12 +325,12 @@ def generate_level(level):
                 ClassExit('exit_f', 'exit_f_d', x, y, 0)
             elif level[y][x] == 'f':
                 Tile('empty', x, y)
-                Student('pl_1', x, y, 0)
+                Student('pl_f', x, y, 0)
             elif level[y][x] == 'E':
                 ClassExit('exit_e', 'exit_e_d', x, y, 0)
             elif level[y][x] == 'e':
                 Tile('empty', x, y)
-                Student('pl_1', x, y, 0)
+                Student('pl_e', x, y, 0)
     # вернем игрока, а также размер поля в клетках
     return new_player, x, y
 
